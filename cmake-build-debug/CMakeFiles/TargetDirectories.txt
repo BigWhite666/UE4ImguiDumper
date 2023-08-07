@@ -1,0 +1,3 @@
+Z:/C++/UE4ImguiDumper/cmake-build-debug/CMakeFiles/NativeSurface.dir
+Z:/C++/UE4ImguiDumper/cmake-build-debug/CMakeFiles/edit_cache.dir
+Z:/C++/UE4ImguiDumper/cmake-build-debug/CMakeFiles/rebuild_cache.dir
