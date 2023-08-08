@@ -8,4 +8,6 @@
 
 // Func
 bool debug= false;
+long int libbase,Matrix,UWorld,Ulevel,Actor,GameInstance,ULocalPlayer,LocalPlayer;
+float matrix[16] = { 0 };
 #endif //SSAGEPARUDERS_NATIVE_SURFACE_H

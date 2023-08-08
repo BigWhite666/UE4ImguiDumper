@@ -202,7 +202,44 @@ static void ShowPlaceholderObject(StructureList data, int uid) {
 
     ImGui::PopID();
 }
-
+static void DebugMatrix(bool* p_open)
+{
+    static int corner = 0;
+    ImGuiIO& io = ImGui::GetIO();
+    ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav;
+    if (corner != -1)
+    {
+        const float PAD = 10.0f;
+        const ImGuiViewport* viewport = ImGui::GetMainViewport();
+        ImVec2 work_pos = viewport->WorkPos; // Use work area to avoid menu-bar/task-bar, if any!
+        ImVec2 work_size = viewport->WorkSize;
+        ImVec2 window_pos, window_pos_pivot;
+        window_pos.x = (corner & 1) ? (work_pos.x + work_size.x - PAD) : (work_pos.x + PAD);
+        window_pos.y = (corner & 2) ? (work_pos.y + work_size.y - PAD) : (work_pos.y + PAD);
+        window_pos_pivot.x = (corner & 1) ? 1.0f : 0.0f;
+        window_pos_pivot.y = (corner & 2) ? 1.0f : 0.0f;
+        ImGui::SetNextWindowPos(window_pos, ImGuiCond_Always, window_pos_pivot);
+        window_flags |= ImGuiWindowFlags_NoMove;
+    }
+    ImGui::SetNextWindowBgAlpha(0.35f); // Transparent background
+    if (ImGui::Begin("矩阵工具", p_open, window_flags))
+    {
+        memset(matrix, 0, 16);
+        vm_readv(Matrix, matrix, 16 * 4);
+        string result;
+        for (int i = 0; i < 16; i++) {
+            //std::cout << matrix[i] << " ";
+            result += std::to_string(matrix[i]) + " ";
+        }
+        ImGui::Text("%s", result.c_str());
+        ImGui::Separator();
+        if (ImGui::IsMousePosValid())
+            ImGui::Text("触摸位置: (%.1f,%.1f)", io.MousePos.x, io.MousePos.y);
+        else
+            ImGui::Text("触摸位置: <无效>");
+    }
+    ImGui::End();
+}
 int main(int argc, char *argv[]) {
     // 初始化imgui
     if (!initDraw(false)) {
@@ -218,18 +255,18 @@ int main(int argc, char *argv[]) {
         cout << "没有找到进程！" << endl;
         return -1;
     }
-    long int libbase = get_module_base(pid, "libUE4.so");
-    printf("libbase:%lx\n", libbase);
 
-    long int Matrix = getPtr64(getPtr64(libbase + (long int)Offsets::Matrix) + 0x0) + 0x9A0;
-    long int UWorld = getPtr64(libbase + (long int)Offsets::Uworld);
-    long int Ulevel = getPtr64(UWorld + 0x30);
-    long int Actor = getPtr64(Ulevel + 0x98);
-    long int GameInstance = getPtr64(UWorld + 0x180);
-    long int ULocalPlayer = getPtr64(GameInstance + 0x38);
-    long int LocalPlayer = getPtr64(ULocalPlayer);
+    libbase = get_module_base(pid, "libUE4.so");
+    Matrix = getPtr64(getPtr64(libbase + (long int)Offsets::Matrix) + 0x0) + 0x9A0;
+    UWorld = getPtr64(libbase + (long int)Offsets::Uworld);
+    Ulevel = getPtr64(UWorld + 0x30);
+    Actor = getPtr64(Ulevel + 0x98);
+    GameInstance = getPtr64(UWorld + 0x180);
+    ULocalPlayer = getPtr64(GameInstance + 0x38);
+    LocalPlayer = getPtr64(ULocalPlayer);
     GNames = libbase + (long int)Offsets::GNames;//anqu
     if (debug){
+        printf("libbase:%lx\n", libbase);
         printf("UWorld:%lx\n", UWorld);
         printf("GNames:%lx\n", GNames);
         printf("Matrix:%lx\n", Matrix);
@@ -239,14 +276,14 @@ int main(int argc, char *argv[]) {
     }
     cout << "\n"<< endl;
 
-    float matrix[16] = {0};
 
     while (flag) {
         // imgui画图开始前调用
         drawBegin();
-
         static bool UEDump = false;
-        //ImGui::ShowDemoWindow(&show_demo_window);
+/*        bool show_demo_window = true;
+        ImGui::ShowDemoWindow(&show_demo_window);*/
+        static bool debugmatrix = false;
 
         {
             static float f = 0.0f;
@@ -257,6 +294,10 @@ int main(int argc, char *argv[]) {
             ImGui::Text("Uworld = %lx", UWorld);
             ImGui::Text("Gname = %lx", GNames);
             ImGui::Checkbox("UEDumpTool", &UEDump);
+            ImGui::Checkbox("DebugMatrix", &debugmatrix);
+
+
+
             if (ImGui::Button("DumpStrings")) {
                 // 打开输出文件并重定向标准输出（stdout）到文件
                 FILE* outFile = freopen("/storage/emulated/0/string.txt", "w+", stdout);
@@ -273,9 +314,8 @@ int main(int argc, char *argv[]) {
                 freopen("CON", "w", stdout);
             }
             if (ImGui::Button("GetGname")) {
-                //旧版本
                 int i=0;
-                while (1){
+                while (0){//这个功能没写好先关闭
                     long int gname = getPtr64(libbase+(0x8*i));
                     if (gname != NULL){
                         string Str = GetName(gname);
@@ -293,6 +333,10 @@ int main(int argc, char *argv[]) {
                 flag = false;
             }
             ImGui::End();
+        }
+
+        if (debugmatrix){
+            DebugMatrix(&debugmatrix);
         }
         if (UEDump) {
             ImGui::SetNextWindowSize(ImVec2(1500, 1000), ImGuiCond_FirstUseEver);
@@ -313,10 +357,9 @@ int main(int argc, char *argv[]) {
                 ImGui::EndTable();
             }
             ImGui::PopStyleVar();
-
             ImGui::End();
-
         }
+
 
         drawEnd();
         std::this_thread::sleep_for(1ms);
