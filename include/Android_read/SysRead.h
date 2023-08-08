@@ -19,6 +19,7 @@
 #include <errno.h>
 #include <netdb.h>
 #include <sys/types.h>
+#include<stdint.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <string.h>
@@ -53,10 +54,23 @@ struct FName
     int ComparisonIndex;
     int Number;
 };
+class UObject
+{
+public:
+    void* vtf; //0x0000
+    char pad_0008[4]; //0x0008
+    uint32_t Index; //0x000C
+    uint64_t Class; //0x0010
+    FName Name; //0x0018
+    uint64_t Outer; //0x0020
+};
+
 struct StructureList
 {
     long int address;
-    string FnameString;
+    int offset;
+    string type;
+    string name;
 };
 
 

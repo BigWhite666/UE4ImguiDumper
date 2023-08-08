@@ -4,7 +4,7 @@
 #include <iostream>
 #include <fstream>
 #include <iomanip>
-
+#define GetOffsets(t, m) uint64_t(&(((t*)0)->m))
 /**
  *
  */
@@ -28,11 +28,12 @@ uint64_t GetClass(uint64_t Address) {
         return UobjectClass;
     }
 
-    return NULL;
+    return uint64_t();
 }
 
+//这里有问题下次在改
 uint64_t GetOuter(uint64_t Address) {
-    uint64_t outer = getDword((Address + 0x20));
+    uint64_t outer = getPtr64(Address + 0x20);
     if (outer != NULL)
         return outer;
     return uint64_t();
@@ -131,14 +132,16 @@ static vector<StructureList> foreachAddress(uint64_t Address) {
     std::vector<StructureList> structureList; // 使用std::vector存储输出内容
     for (size_t i = 0; i < 0x300; i++) {
         long int Tmp = getPtr64((Address + i));
-        string Klass = GetName(Tmp);
+        //long int Tmp = (Address + i);
+        string KlassName = GetClassName(Tmp);
         string outerName = GetOuterName(Tmp);
-/*        if (Klass.empty() || outerName.empty() || GetClass(Tmp) == NULL) {
-            continue;
-        }*/
+
         StructureList data;
         data.address = (Address + i);
-        data.FnameString = Klass.c_str();
+        data.type = KlassName.c_str();
+        data.name = outerName.c_str();
+        data.offset=i;
+
         structureList.push_back(data);
 
 //printf("[%p] %s", (Address + i), Klass.c_str());
@@ -146,7 +149,7 @@ static vector<StructureList> foreachAddress(uint64_t Address) {
     return structureList;
 }
 // 显示节点信息
-static void ShowPlaceholderObject(uint64_t start, StructureList data, int uid) {
+static void ShowPlaceholderObject(StructureList data, int uid) {
     // 使用对象的地址作为标识符，确保唯一性。
     ImGui::PushID(data.address);
 
@@ -163,7 +166,7 @@ static void ShowPlaceholderObject(uint64_t start, StructureList data, int uid) {
     float F= getFloat(data.address);
     int D= getDword(data.address);
 
-    bool node_open = ImGui::TreeNode("Tree", "%x——Fname:%s——————————%lx : P->%lx F->%f D->%d", data.address - start, data.FnameString.c_str(), data.address, P,F,D);
+    bool node_open = ImGui::TreeNode("Tree", "%x——Class:%s————————Name:%s————————%lx : P->%lx F->%f D->%d", data.offset, data.type.c_str(), data.name.c_str(),data.address, P,F,D);
 
     ImGui::TableSetColumnIndex(0);
     if (node_open) {
@@ -172,7 +175,7 @@ static void ShowPlaceholderObject(uint64_t start, StructureList data, int uid) {
         int i = 0;
         for (const auto &item: aaa) {
             ImGui::PushID(i); // Use field index as identifier.
-            ShowPlaceholderObject(P, item, i);
+            ShowPlaceholderObject(item, i);
             ImGui::PopID();
             i++;
         }
@@ -233,7 +236,6 @@ int main(int argc, char *argv[]) {
             ImGui::Text("Gname = %lx", GNames);
             ImGui::Checkbox("UEDumpTool", &UEDump);
             if (ImGui::Button("DumpStrings")) {
-
                 // 打开输出文件并重定向标准输出（stdout）到文件
                 FILE* outFile = freopen("/storage/emulated/0/string.txt", "w+", stdout);
                 if (!outFile) {
@@ -247,6 +249,22 @@ int main(int argc, char *argv[]) {
                 // 关闭输出文件，并恢复标准输出
                 fclose(stdout);
                 freopen("CON", "w", stdout);
+            }
+            if (ImGui::Button("GetGname")) {
+                //旧版本
+                int i=0;
+                while (1){
+                    long int gname = getPtr64(libbase+(0x8*i));
+                    if (gname != NULL){
+                        string Str = GetName(gname);
+                        if (Str =="ByteProperty"){
+                            break;
+                        }
+                    }
+                    i++;
+                }
+                printf("%lx",i*8);
+                cout << "\n" << endl;
             }
             if (ImGui::Button("exit")) {
                 flag = false;
@@ -266,7 +284,7 @@ int main(int argc, char *argv[]) {
                 int i = 100000;
                 for (const auto &data : aaa) {
                     ImGui::PushID(i);
-                    ShowPlaceholderObject(aaa[0].address, data, i);
+                    ShowPlaceholderObject(data, i);
                     ImGui::PopID();
                     //ImGui::Separator();
                 }
