@@ -23,21 +23,14 @@ FName ReadProcessFname(uint64_t address) {
 
 
 uint64_t GetClass(uint64_t Address) {
-    uint64_t UobjectClass = getDword((Address + 0x10));
+    uint64_t UobjectClass = getPtr64((Address + 0x10));
     if (UobjectClass != NULL) {
         return UobjectClass;
     }
-
     return uint64_t();
 }
 
-//这里有问题下次在改
-uint64_t GetOuter(uint64_t Address) {
-    uint64_t outer = getPtr64(Address + 0x20);
-    if (outer != NULL)
-        return outer;
-    return uint64_t();
-};
+
 
 FName GetFName(uint64_t Address) {
     FName Name = ReadProcessFname((Address + 0x18));
@@ -111,6 +104,13 @@ std::string GetClassName(uint64_t Address) {
     return name;
 }
 
+uint64_t GetOuter(uint64_t Address) {
+    uint64_t outer = getPtr64(Address + 0x20);
+    if (outer != NULL)
+        return outer;
+    return uint64_t();
+};
+
 std::string GetOuterName(uint64_t Address) {
     auto klass = GetClass(Address);
     if (klass != NULL) {
@@ -130,7 +130,7 @@ std::string GetOuterName(uint64_t Address) {
 
 static vector<StructureList> foreachAddress(uint64_t Address) {
     std::vector<StructureList> structureList; // 使用std::vector存储输出内容
-    for (size_t i = 0; i < 0x300; i++) {
+    for (size_t i = 0; i < 0x300; i+=4) {
         long int Tmp = getPtr64((Address + i));
         //long int Tmp = (Address + i);
         string KlassName = GetClassName(Tmp);
@@ -141,7 +141,11 @@ static vector<StructureList> foreachAddress(uint64_t Address) {
         data.type = KlassName.c_str();
         data.name = outerName.c_str();
         data.offset=i;
+        if (KlassName.empty() || outerName.empty())
+            continue;
 
+/*        if (outerName.find("null") != outerName.npos || outerName.find("None") != outerName.npos)
+            continue;*/
         structureList.push_back(data);
 
 //printf("[%p] %s", (Address + i), Klass.c_str());
