@@ -46,6 +46,20 @@ FName GetFName(uint64_t Address) {
 
 }
 
+std::string GetName_Old(int i) //旧版本算法
+{
+    uintptr_t G_Names = getPtr64(GNames);
+    int Id = (int)(i / (int)0x4000);
+    int Idtemp = (int)(i % (int)0x4000);
+    auto NamePtr = getPtr64((G_Names + Id * 8));
+    auto Name = getPtr64((NamePtr + 8 * Idtemp));
+    char name[0x100] = { 0 };
+    if (vm_readv((Name + 0xC), name, 0x100)) //0xC需要手动推算，默认是0x10
+    {
+        return name;
+    }
+    return std::string();
+}
 
 std::string GetName_New(uint32_t index) //新版本算法
 {
@@ -68,7 +82,6 @@ std::string GetName_New(uint32_t index) //新版本算法
         printf("FNameEntry===%lx\n", FNameEntry);
         printf("StrPtr===%lx\n", StrPtr);
     }
-    ///Unicode Dumping Not Supported Yet
     if (StrLength > 0 && StrLength < 250) {
         string name(StrLength, '\0');
         vm_readv(StrPtr, name.data(), StrLength * sizeof(char));
@@ -85,6 +98,8 @@ std::string GetName(uint64_t Address) {
         printf("FnameComparisonIndex=%d\n", FnameComparisonIndex);
     }
     std::string GetName = GetName_New(FnameComparisonIndex); //新算法获取Name
+    //std::string GetName = GetName_Old(FnameComparisonIndex); //旧版本算法获取Name
+
     return GetName;
 
 }
