@@ -5,10 +5,25 @@
 #include <fstream>
 #include <iomanip>
 #define GetOffsets(t, m) uint64_t(&(((t*)0)->m))
-/**
- *
- */
+#pragma once
+enum class  Offsets
+{
+    GNames = 0xB1D5640,
+    Uworld = 0xB3E8A30,
+    Matrix = 0xB2FF440
+};
+string packagename = "com.tencent.mf.uam";
+/*enum class  Offsets
+{
+    GNames = 0xAF4E100,
+    Uworld = 0xB109460,
+    Matrix = 0xB0D9AB8
+};
+string packagename = "com.Xccelerate.CSGOM";*/
 
+
+
+bool isUE423 = true;//true新版本算法，false旧版本算法
 
 
 FName ReadProcessFname(uint64_t address) {
@@ -27,7 +42,7 @@ uint64_t GetClass(uint64_t Address) {
     if (UobjectClass != NULL) {
         return UobjectClass;
     }
-    return uint64_t();
+    return NULL;
 }
 
 
@@ -91,8 +106,12 @@ std::string GetName(uint64_t Address) {
     if (debug) {
         printf("FnameComparisonIndex=%d\n", FnameComparisonIndex);
     }
-    std::string GetName = GetName_New(FnameComparisonIndex); //新算法获取Name
-    //std::string GetName = GetName_Old(FnameComparisonIndex); //旧版本算法获取Name
+    std::string GetName;
+    if (isUE423){
+        GetName = GetName_New(FnameComparisonIndex); //新算法获取Name
+    }else{
+        GetName = GetName_Old(FnameComparisonIndex); //旧版本算法获取Name
+    }
 
     return GetName;
 
@@ -148,7 +167,6 @@ static vector<StructureList> foreachAddress(uint64_t Address) {
             continue;*/
         structureList.push_back(data);
 
-//printf("[%p] %s", (Address + i), Klass.c_str());
     }
     return structureList;
 }
@@ -162,11 +180,7 @@ static void ShowPlaceholderObject(StructureList data, int uid) {
     ImGui::AlignTextToFramePadding();
     long int Pointer = getPtr64(data.address);
     long int P;
-    if (GetClass(Pointer) != NULL) {
-        P = Pointer;
-    } else {
-        P = getDword(Pointer);
-    }
+    P = Pointer;
     float F= getFloat(data.address);
     int D= getDword(data.address);
 
@@ -198,7 +212,7 @@ int main(int argc, char *argv[]) {
     Init_touch_config();
     printf("Pid is %d\n", getpid());
     bool flag = true;
-    pid = getPID("com.tencent.mf.uam");//包名
+    pid = getPID(packagename.c_str());//包名
 
     if (pid <= 0) {
         cout << "没有找到进程！" << endl;
@@ -207,19 +221,23 @@ int main(int argc, char *argv[]) {
     long int libbase = get_module_base(pid, "libUE4.so");
     printf("libbase:%lx\n", libbase);
 
-    long int Matrix = getPtr64(getPtr64(libbase + 0xB2FF440) + 0x0) + 0x9A0;
-    long int UWorld = getPtr64(libbase + 0xB3E8A30);
+    long int Matrix = getPtr64(getPtr64(libbase + (long int)Offsets::Matrix) + 0x0) + 0x9A0;
+    long int UWorld = getPtr64(libbase + (long int)Offsets::Uworld);
     long int Ulevel = getPtr64(UWorld + 0x30);
     long int Actor = getPtr64(Ulevel + 0x98);
-    GNames = libbase + 0xB1D5640;//anqu
-    //GNames = libbase + 0xC4F7500;
-    printf("UWorld:%lx\n", UWorld);
-    printf("GNames:%lx\n", GNames);
-    printf("Matrix:%lx\n", Matrix);
-    FName aas=GetFName(UWorld);
-    printf("GetFName:%d\n", aas.ComparisonIndex);
-    string name = GetName_New(6);
-    cout << "name\n"<< name << endl;
+    long int GameInstance = getPtr64(UWorld + 0x180);
+    long int ULocalPlayer = getPtr64(GameInstance + 0x38);
+    long int LocalPlayer = getPtr64(ULocalPlayer);
+    GNames = libbase + (long int)Offsets::GNames;//anqu
+    if (debug){
+        printf("UWorld:%lx\n", UWorld);
+        printf("GNames:%lx\n", GNames);
+        printf("Matrix:%lx\n", Matrix);
+        printf("GameInstance:%lx\n", GameInstance);
+        printf("UlocalPlayer:%lx\n", ULocalPlayer);
+        printf("LocalPlayer:%lx\n", LocalPlayer);
+    }
+    cout << "\n"<< endl;
 
     float matrix[16] = {0};
 
@@ -270,10 +288,10 @@ int main(int argc, char *argv[]) {
                 printf("%lx",i*8);
                 cout << "\n" << endl;
             }
-            if (ImGui::Button("exit")) {
+            if (ImGui::Button("退出")) {
+                exec_native_surface("killall NativeSurface");
                 flag = false;
             }
-
             ImGui::End();
         }
         if (UEDump) {
