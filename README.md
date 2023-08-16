@@ -16,7 +16,8 @@ https://github.com/kp7742/UE4Dumper
   <img width="300" alt="image" src="demo.jpg">
 
 ### 下个版本
-自动识别类型 自动找gname
+自动找Gname Uworld Matrix【已完成】
+Star破百开源 貌似有点难
 
 ### 此项目编译输出路径 outputs
 # UE4ImguiDumper
