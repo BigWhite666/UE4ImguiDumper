@@ -18,7 +18,7 @@ https://github.com/kp7742/UE4Dumper
 
 ### 下个版本
 自动找Gname Uworld Matrix【已完成】
-Star破50开源 貌似有点难
+暂未开源
 
 ### 此项目编译输出路径 outputs
 # UE4ImguiDumper
