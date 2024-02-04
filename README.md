@@ -13,7 +13,8 @@ https://github.com/kp7742/UE4Dumper
 ### 功能
 - 项目支持到 Android 9 ~ 13
 ---
-交流群：https://t.me/BigWhiteChat
+https://t.me/BigWhiteChat
+https://t.me/BigWhiteHack
 ### 效果图
   <img width="300" alt="image" src="demo.jpg">
 
